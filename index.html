@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🚲 โยงเส้นทางให้ใกล้ที่สุด - สื่อการเรียนรู้วิทยาการคำนวณ ป.4</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Prompt & Kanit -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        * {
+            font-family: 'Prompt', 'Kanit', sans-serif;
+            touch-action: manipulation;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #6366f1 100%);
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .title-font {
+            font-family: 'Kanit', sans-serif;
+        }
+
+        /* Pulse glow for highlight elements */
+        .pulse-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255, 230, 0, 0.6)); }
+            50% { transform: scale(1.05); filter: drop-shadow(0 0 18px rgba(255, 230, 0, 0.9)); }
+        }
+
+        /* Active node animation */
+        .node-pulse {
+            animation: nodePulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes nodePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* SVG edge animation */
+        .edge-line-active {
+            stroke-dasharray: 8, 8;
+            animation: dashMove 1s linear infinite;
+        }
+
+        @keyframes dashMove {
+            to { stroke-dashoffset: -16; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.2);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #38bdf8;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen text-slate-800 antialiased selection:bg-amber-300 selection:text-slate-900">
+
+    <!-- Header Bar -->
+    <header class="w-full bg-slate-900/90 backdrop-blur-md border-b-4 border-amber-400 sticky top-0 z-30 shadow-2xl text-white">
+        <div class="max-w-6xl mx-auto px-4 py-2.5 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-3 cursor-pointer" id="headerHomeBtn">
+                <div class="bg-amber-400 text-slate-900 p-2 rounded-2xl shadow-lg border-2 border-amber-300 pulse-glow">
+                    <span class="text-2xl">🚲</span>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-2xl font-black text-amber-300 title-font tracking-wide flex items-center gap-2">
+                        โยงเส้นทางให้ใกล้ที่สุด <span class="text-[10px] sm:text-xs bg-sky-500 text-white px-2 py-0.5 rounded-full font-sans font-bold">ป.4 วิทยาการคำนวณ</span>
+                    </h1>
+                    <p class="text-[11px] sm:text-xs text-sky-200">ฝึกการคิดวิเคราะห์ วางแผน และเปรียบเทียบระยะทางสั้นที่สุด</p>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="flex items-center space-x-2 sm:space-x-4 bg-slate-800/90 px-3 py-1.5 rounded-2xl border-2 border-sky-400 shadow-inner">
+                <!-- Level selector info -->
+                <div class="flex items-center space-x-1 border-r border-slate-700 pr-2 sm:pr-3">
+                    <i class="fa-solid fa-map text-amber-400 text-xs sm:text-sm"></i>
+                    <span id="levelDisplay" class="text-xs sm:text-sm font-bold text-sky-200">แผนที่ 1</span>
+                </div>
+
+                <!-- Timer -->
+                <div class="flex items-center space-x-1 border-r border-slate-700 pr-2 sm:pr-3">
+                    <i class="fa-solid fa-clock text-sky-400 text-xs sm:text-sm"></i>
+                    <span id="timerDisplay" class="text-xs sm:text-sm font-black text-amber-300">00:00</span>
+                </div>
+
+                <!-- Score -->
+                <div class="flex items-center space-x-1 border-r border-slate-700 pr-2 sm:pr-3">
+                    <i class="fa-solid fa-trophy text-yellow-400 text-xs sm:text-sm"></i>
+                    <span id="scoreDisplay" class="text-xs sm:text-sm font-black text-yellow-300">0</span>
+                    <span class="text-[10px] text-slate-400 hidden sm:inline">คะแนน</span>
+                </div>
+
+                <!-- Sound Toggle -->
+                <button id="soundToggleBtn" class="p-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-amber-300 border border-slate-500 transition">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-4 flex flex-col justify-center items-center relative">
+
+        <!-- 1. START / LEVEL SELECT SCREEN -->
+        <section id="startScreen" class="w-full max-w-3xl flex flex-col items-center text-center space-y-5 py-4 my-auto">
+            <div class="relative pulse-glow my-2">
+                <div class="w-32 h-32 sm:w-40 sm:h-40 bg-gradient-to-tr from-amber-400 via-sky-400 to-indigo-500 rounded-3xl p-1 shadow-2xl flex items-center justify-center border-4 border-white">
+                    <div class="w-full h-full bg-slate-900 rounded-2xl flex flex-col items-center justify-center p-3">
+                        <span class="text-5xl sm:text-6xl">🏡🚲🏫</span>
+                        <span class="text-[11px] text-amber-300 font-bold tracking-widest mt-2 uppercase">Shortest Path Challenge</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <h2 class="text-2xl sm:text-4xl font-extrabold text-white title-font">
+                    ยินดีต้อนรับสู่ <span class="text-amber-300">“โยงเส้นทางให้ใกล้ที่สุด”</span>
+                </h2>
+                <p class="text-sky-100 text-xs sm:text-sm leading-relaxed bg-slate-900/80 p-4 rounded-2xl border border-sky-400/50 shadow-xl max-w-2xl mx-auto">
+                    ช่วยพานักเรียนเดินทางจาก <strong class="text-amber-300">🏠 บ้าน</strong> ไปให้ถึง <strong class="text-amber-300">🏫 โรงเรียน</strong> โดยเลือกเดินผ่านจุดต่าง ๆ บนแผนที่และหา <strong class="text-emerald-300">เส้นทางที่มีระยะทางรวมสั้นที่สุด</strong> เพื่อสะสมคะแนนเต็ม 100 ดาวและเป็นยอดนักเดินทาง!
+                </p>
+            </div>
+
+            <!-- How to Play Box -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-2xl text-left">
+                <div class="p-3 bg-slate-900/90 rounded-2xl border border-sky-400/40 text-white flex items-center space-x-3">
+                    <div class="p-2.5 bg-sky-500/20 text-sky-300 rounded-xl text-lg">
+                        <i class="fa-solid fa-house"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-amber-300">1. เริ่มจากบ้าน</div>
+                        <div class="text-[11px] text-slate-300">เริ่มเดินทางที่จุดบ้านเสมอ</div>
+                    </div>
+                </div>
+                <div class="p-3 bg-slate-900/90 rounded-2xl border border-sky-400/40 text-white flex items-center space-x-3">
+                    <div class="p-2.5 bg-emerald-500/20 text-emerald-300 rounded-xl text-lg">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-amber-300">2. เลือกจุดเชื่อมต่อ</div>
+                        <div class="text-[11px] text-slate-300">แตะจุดที่มีเส้นถนนเชื่อม</div>
+                    </div>
+                </div>
+                <div class="p-3 bg-slate-900/90 rounded-2xl border border-sky-400/40 text-white flex items-center space-x-3">
+                    <div class="p-2.5 bg-amber-500/20 text-amber-300 rounded-xl text-lg">
+                        <i class="fa-solid fa-school"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-amber-300">3. ถึงโรงเรียน & ตรวจ</div>
+                        <div class="text-[11px] text-slate-300">หาเส้นทางสั้นสุดเพื่อ 100 คะแนน</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level Selection Menu -->
+            <div class="w-full max-w-xl space-y-2">
+                <h3 class="text-white text-sm font-bold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-map-location-dot text-amber-300"></i>
+                    <span>เลือกแผนที่โจทย์ประจำด่าน:</span>
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3" id="levelSelectionGrid">
+                    <!-- Dynamic Level Cards Injected via JS -->
+                </div>
+            </div>
+
+            <button id="startGamePlayBtn" class="px-8 py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black rounded-2xl text-lg shadow-xl transform active:scale-95 transition flex items-center gap-3 border-2 border-amber-200 cursor-pointer my-2">
+                <i class="fa-solid fa-play text-xl"></i>
+                <span>เริ่มเล่นด่านแรกทันที!</span>
+            </button>
+        </section>
+
+        <!-- 2. GAME WORKSPACE SCREEN -->
+        <section id="gameScreen" class="w-full hidden flex-col space-y-3 my-1">
+
+            <!-- Instruction & Live Distance Banner -->
+            <div class="bg-slate-900/90 rounded-2xl p-3 border-2 border-sky-400 text-white shadow-xl flex flex-wrap justify-between items-center gap-3">
+                <div class="flex items-center space-x-2">
+                    <div class="p-2 bg-amber-400 text-slate-950 rounded-xl text-lg font-bold">
+                        📌
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider block" id="mapTagDisplay">แผนที่ 1: เส้นทางรอบชุมชน</span>
+                        <p class="text-xs sm:text-sm font-semibold text-slate-100">
+                            แตะเลือกจุดเพื่อพาจาก <strong class="text-amber-300">🏠 บ้าน</strong> ไป <strong class="text-amber-300">🏫 โรงเรียน</strong> ให้สั้นที่สุด!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Live Path Tracker -->
+                <div class="flex items-center space-x-3 bg-slate-800 px-3.5 py-1.5 rounded-xl border border-slate-700">
+                    <div class="text-right">
+                        <div class="text-[10px] text-slate-400">ระยะทางรวมตอนนี้:</div>
+                        <div class="text-base sm:text-lg font-black text-emerald-400 font-mono" id="currentDistanceDisplay">0.0 กม.</div>
+                    </div>
+                    <button id="undoStepBtn" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-amber-300 rounded-lg text-xs font-bold border border-slate-500 transition flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>ถอย 1 ขั้น</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Map Container (SVG + Canvas Visual Elements) -->
+            <div class="bg-slate-900/95 rounded-3xl p-3 sm:p-5 border-4 border-amber-300 shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[380px] sm:min-h-[460px]">
+                
+                <!-- Dynamic Interactive Map Graphics Area -->
+                <div id="mapCanvasContainer" class="w-full h-[320px] sm:h-[400px] relative rounded-2xl bg-slate-950/70 border-2 border-slate-800 overflow-hidden shadow-inner">
+                    <!-- SVG lines injected here -->
+                    <svg id="mapSvg" class="w-full h-full absolute inset-0 z-10 pointer-events-none"></svg>
+                    
+                    <!-- DOM Interactive Nodes overlay -->
+                    <div id="nodesContainer" class="w-full h-full absolute inset-0 z-20"></div>
+                </div>
+
+                <!-- Path History Breadcrumb Display -->
+                <div class="mt-2 bg-slate-800/80 p-2.5 rounded-xl border border-slate-700 flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center space-x-1.5 overflow-x-auto py-0.5 text-xs text-sky-200" id="pathBreadcrumbs">
+                        <span class="font-bold text-amber-300">เส้นทางที่คุณเลือก:</span>
+                        <span class="bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded border border-amber-400/40 font-bold">🏠 บ้าน</span>
+                    </div>
+
+                    <div class="flex items-center space-x-2 ml-auto">
+                        <button id="resetMapBtn" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-slate-500">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                            <span>เริ่มใหม่</span>
+                        </button>
+                        <button id="checkAnswerBtn" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-lg flex items-center gap-1.5 transition border-2 border-emerald-300 cursor-pointer">
+                            <i class="fa-solid fa-circle-check text-base"></i>
+                            <span>ตรวจคำตอบ</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Feedback Box -->
+            <div id="feedbackBox" class="hidden p-3.5 rounded-2xl text-xs sm:text-sm font-medium border flex items-start gap-3 animate-fade-in shadow-lg">
+                <!-- Dynamic Alert Text -->
+            </div>
+
+        </section>
+
+        <!-- 3. RESULT EVALUATION MODAL -->
+        <div id="resultModal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-4 border-amber-400 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 text-center text-white transform transition-all scale-100">
+                <div id="modalIconBox" class="w-20 h-20 bg-amber-400/20 border-2 border-amber-400 rounded-full flex items-center justify-center text-4xl mx-auto shadow-inner text-amber-400 pulse-glow">
+                    🏆
+                </div>
+
+                <div class="space-y-1">
+                    <span id="modalHeaderBadge" class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                        ผลการตรวจสอบเส้นทาง
+                    </span>
+                    <h3 id="modalTitle" class="text-2xl font-black text-amber-300 title-font pt-1">
+                        🎉 เก่งมาก!
+                    </h3>
+                    <p id="modalSubtitle" class="text-xs text-slate-300 font-medium">คุณเดินทางถึงโรงเรียนเรียบร้อยแล้ว!</p>
+                </div>
+
+                <!-- Distance Stats Box -->
+                <div class="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs text-left">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-slate-400">ระยะทางที่คุณเลือก:</span>
+                        <strong id="modalUserDist" class="text-amber-400 font-bold text-sm">12.5 กิโลเมตร</strong>
+                    </div>
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-slate-400">เส้นทางที่สั้นที่สุดคือ:</span>
+                        <strong id="modalBestDist" class="text-emerald-400 font-bold text-sm">10.0 กิโลเมตร</strong>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-400">คะแนนที่ได้ในด่านนี้:</span>
+                        <strong id="modalScoreEarned" class="text-yellow-300 font-black text-base">100 / 100</strong>
+                    </div>
+                </div>
+
+                <!-- Educational Takeaway Box -->
+                <div class="bg-indigo-950/90 p-3.5 rounded-2xl border border-indigo-400/50 text-left space-y-1">
+                    <div class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-lightbulb text-amber-400"></i> สรุปเส้นทางที่ดีที่สุด:
+                    </div>
+                    <p id="modalBestPathExplanation" class="text-xs text-slate-200 leading-relaxed">
+                        เส้นทางสั้นที่สุดคือ: บ้าน ➔ B ➔ D ➔ โรงเรียน (ระยะทางรวม 10.0 กม.)
+                    </p>
+                </div>
+
+                <div class="flex items-center space-x-2 pt-1">
+                    <button id="modalRetryBtn" class="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs sm:text-sm border border-slate-600 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>ลองเส้นทางอื่น</span>
+                    </button>
+                    <button id="modalNextLevelBtn" class="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-lg transition flex items-center justify-center gap-1.5 border-2 border-emerald-200">
+                        <span>เล่นด่านถัดไป</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. FINAL VICTORY SUMMARY SCREEN -->
+        <section id="victoryScreen" class="w-full hidden text-center space-y-5 py-4 max-w-2xl my-auto">
+            <div class="relative pulse-glow">
+                <div class="w-24 h-24 bg-amber-400/20 border-4 border-amber-400 rounded-full flex items-center justify-center text-5xl mx-auto shadow-2xl text-amber-400">
+                    🏆
+                </div>
+            </div>
+
+            <div class="space-y-1 text-white">
+                <span class="bg-amber-400 text-slate-950 text-xs font-extrabold px-3 py-0.5 rounded-full uppercase tracking-wider">
+                    จบการเรียนรู้ทุกด่านแล้ว!
+                </span>
+                <h2 class="text-2xl sm:text-4xl font-black text-amber-300 title-font">
+                    สุดยอดนักวางแผนเส้นทาง!
+                </h2>
+                <p class="text-sky-100 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
+                    ขอปรบมือให้คนเก่ง! คุณเรียนรู้การเปรียบเทียบระยะทางและเลือกเส้นทางสั้นที่สุดได้ครบถ้วน
+                </p>
+            </div>
+
+            <!-- Score Summary Card -->
+            <div class="bg-slate-900/95 p-5 rounded-3xl border-2 border-sky-400 shadow-2xl space-y-4 text-white">
+                <div class="grid grid-cols-2 gap-3 text-center border-b border-slate-800 pb-3">
+                    <div>
+                        <div class="text-xs text-slate-400 font-medium">คะแนนรวมทั้งหมด</div>
+                        <div id="finalScore" class="text-3xl font-black text-amber-400 title-font">300</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-400 font-medium">เวลาที่ใช้ทั้งหมด</div>
+                        <div id="finalTime" class="text-3xl font-black text-amber-300 title-font">01:45</div>
+                    </div>
+                </div>
+
+                <!-- CS Grade 4 Curriculum Takeaway -->
+                <div class="bg-gradient-to-r from-sky-900/90 to-indigo-900/90 p-4 rounded-2xl border border-sky-400/50 text-left space-y-1.5">
+                    <div class="flex items-center space-x-2 text-amber-300 font-bold text-xs">
+                        <i class="fa-solid fa-bookmark text-sm"></i>
+                        <span>สรุปบทเรียน วิทยาการคำนวณ ป.4:</span>
+                    </div>
+                    <p class="text-xs text-sky-100 leading-relaxed bg-slate-950/60 p-3 rounded-xl border border-sky-400/30">
+                        “การแก้ปัญหาอย่างเป็นขั้นตอนในการหาเส้นทางที่ดีที่สุด (Shortest Path) ทำได้โดยการเปรียบเทียบระยะทางรวมของทางเลือกทั้งหมด จากนั้นเลือกเส้นทางที่มีค่าน้อยที่สุด ซึ่งช่วยประหยัดทั้งเวลาและการเดินทางในชีวิตจริง!”
+                    </p>
+                </div>
+            </div>
+
+            <button id="restartGameBtn" class="w-full py-3.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black rounded-2xl text-base shadow-xl flex items-center justify-center gap-2 border-2 border-amber-200 cursor-pointer">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>เล่นใหม่อีกครั้ง</span>
+            </button>
+        </section>
+
+    </main>
+
+    <script>
+        /* ==========================================================================
+           1. NATIVE WEB AUDIO SYNTHESIZER
+           ========================================================================== */
+        class SoundSynth {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playClick() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(500, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.05);
+
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.05);
+            }
+
+            playSelectNode() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(660, this.ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+
+            playWrong() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(260, now);
+                osc.frequency.linearRampToValueAtTime(140, now + 0.25);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+
+            playVictory() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.09);
+
+                    gain.gain.setValueAtTime(0.18, now + i * 0.09);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.09);
+                    osc.stop(now + i * 0.09 + 0.25);
+                });
+            }
+        }
+
+        const sound = new SoundSynth();
+
+        /* ==========================================================================
+           2. MAP DATASETS & GRAPH CONFIGURATIONS
+           ========================================================================== */
+        const gameLevels = [
+            {
+                id: 1,
+                name: "แผนที่ 1: ชุมชนน่าอยู่",
+                tag: "แผนที่ 1 (ระดับเริ่มต้น - 5 จุดผ่าน)",
+                startNode: "HOME",
+                targetNode: "SCHOOL",
+                nodes: [
+                    { id: "HOME", label: "บ้าน", icon: "🏠", x: 12, y: 50, color: "#f59e0b" },
+                    { id: "A", label: "จุด A (สวนสาธารณะ)", icon: "🌳", x: 35, y: 22, color: "#38bdf8" },
+                    { id: "B", label: "จุด B (ร้านค้า)", icon: "🏪", x: 38, y: 78, color: "#38bdf8" },
+                    { id: "C", label: "จุด C (ห้องสมุด)", icon: "📚", x: 68, y: 22, color: "#38bdf8" },
+                    { id: "D", label: "จุด D (สนามเด็กเล่น)", icon: "🎡", x: 65, y: 78, color: "#38bdf8" },
+                    { id: "SCHOOL", label: "โรงเรียน", icon: "🏫", x: 88, y: 50, color: "#10b981" }
+                ],
+                edges: [
+                    { from: "HOME", to: "A", dist: 3.0 },
+                    { from: "HOME", to: "B", dist: 2.5 },
+                    { from: "A", to: "B", dist: 2.0 },
+                    { from: "A", to: "C", dist: 4.0 },
+                    { from: "A", to: "D", dist: 5.0 },
+                    { from: "B", to: "D", dist: 3.5 },
+                    { from: "C", to: "SCHOOL", dist: 3.0 },
+                    { from: "D", to: "SCHOOL", dist: 2.0 },
+                    { from: "C", to: "D", dist: 2.5 }
+                ]
+            },
+            {
+                id: 2,
+                name: "แผนที่ 2: เมืองจำลอง",
+                tag: "แผนที่ 2 (ระดับปานกลาง - 6 จุดผ่าน)",
+                startNode: "HOME",
+                targetNode: "SCHOOL",
+                nodes: [
+                    { id: "HOME", label: "บ้าน", icon: "🏠", x: 10, y: 50, color: "#f59e0b" },
+                    { id: "A", label: "จุด A (ไปรษณีย์)", icon: "📮", x: 30, y: 20, color: "#38bdf8" },
+                    { id: "B", label: "จุด B (สถานีตำรวจ)", icon: "👮", x: 30, y: 80, color: "#38bdf8" },
+                    { id: "C", label: "จุด C (โรงพยาบาล)", icon: "🏥", x: 55, y: 20, color: "#38bdf8" },
+                    { id: "D", label: "จุด D (สถานีรถไฟ)", icon: "🚉", x: 55, y: 80, color: "#38bdf8" },
+                    { id: "E", label: "จุด E (ตลาดสด)", icon: "🧺", x: 75, y: 50, color: "#38bdf8" },
+                    { id: "SCHOOL", label: "โรงเรียน", icon: "🏫", x: 92, y: 50, color: "#10b981" }
+                ],
+                edges: [
+                    { from: "HOME", to: "A", dist: 4.0 },
+                    { from: "HOME", to: "B", dist: 3.0 },
+                    { from: "A", to: "C", dist: 3.5 },
+                    { from: "A", to: "B", dist: 4.5 },
+                    { from: "B", to: "D", dist: 5.0 },
+                    { from: "C", to: "E", dist: 3.0 },
+                    { from: "D", to: "E", dist: 2.5 },
+                    { from: "C", to: "SCHOOL", dist: 6.0 },
+                    { from: "E", to: "SCHOOL", dist: 2.0 }
+                ]
+            },
+            {
+                id: 3,
+                name: "แผนที่ 3: เขาวงกตสุขสันต์",
+                tag: "แผนที่ 3 (ระดับท้าทาย - เส้นทางซับซ้อน)",
+                startNode: "HOME",
+                targetNode: "SCHOOL",
+                nodes: [
+                    { id: "HOME", label: "บ้าน", icon: "🏠", x: 8, y: 50, color: "#f59e0b" },
+                    { id: "A", label: "จุด A", icon: "📍", x: 25, y: 18, color: "#38bdf8" },
+                    { id: "B", label: "จุด B", icon: "📍", x: 25, y: 82, color: "#38bdf8" },
+                    { id: "C", label: "จุด C", icon: "📍", x: 48, y: 35, color: "#38bdf8" },
+                    { id: "D", label: "จุด D", icon: "📍", x: 48, y: 65, color: "#38bdf8" },
+                    { id: "E", label: "จุด E", icon: "📍", x: 72, y: 18, color: "#38bdf8" },
+                    { id: "F", label: "จุด F", icon: "📍", x: 72, y: 82, color: "#38bdf8" },
+                    { id: "SCHOOL", label: "โรงเรียน", icon: "🏫", x: 92, y: 50, color: "#10b981" }
+                ],
+                edges: [
+                    { from: "HOME", to: "A", dist: 3.5 },
+                    { from: "HOME", to: "B", dist: 2.0 },
+                    { from: "A", to: "C", dist: 2.5 },
+                    { from: "B", to: "D", dist: 4.0 },
+                    { from: "A", to: "B", dist: 5.0 },
+                    { from: "C", to: "D", dist: 1.5 },
+                    { from: "C", to: "E", dist: 3.0 },
+                    { from: "D", to: "F", dist: 2.5 },
+                    { from: "E", to: "SCHOOL", dist: 3.0 },
+                    { from: "F", to: "SCHOOL", dist: 3.5 },
+                    { from: "E", to: "F", dist: 4.0 }
+                ]
+            }
+        ];
+
+        /* ==========================================================================
+           3. GAME STATE MANAGEMENT & ALGORITHMS
+           ========================================================================== */
+        let currentLevelIndex = 0;
+        let selectedPath = ["HOME"];
+        let totalScore = 0;
+        let timerSeconds = 0;
+        let timerInterval = null;
+
+        // DOM Elements References
+        const startScreen = document.getElementById('startScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const victoryScreen = document.getElementById('victoryScreen');
+        const resultModal = document.getElementById('resultModal');
+
+        const levelDisplay = document.getElementById('levelDisplay');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const mapTagDisplay = document.getElementById('mapTagDisplay');
+        const currentDistanceDisplay = document.getElementById('currentDistanceDisplay');
+        const pathBreadcrumbs = document.getElementById('pathBreadcrumbs');
+        const feedbackBox = document.getElementById('feedbackBox');
+
+        const mapSvg = document.getElementById('mapSvg');
+        const nodesContainer = document.getElementById('nodesContainer');
+        const levelSelectionGrid = document.getElementById('levelSelectionGrid');
+
+        /* Initialize Game */
+        window.addEventListener('load', () => {
+            renderLevelSelectionCards();
+            showScreen(startScreen);
+
+            // Handle window resize for map redraw
+            window.addEventListener('resize', () => {
+                if (!gameScreen.classList.contains('hidden')) {
+                    renderMapGraphics();
+                }
+            });
+        });
+
+        function showScreen(screen) {
+            [startScreen, gameScreen, victoryScreen].forEach(s => s.classList.add('hidden'));
+            screen.classList.remove('hidden');
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerSeconds = 0;
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+                const secs = String(timerSeconds % 60).padStart(2, '0');
+                timerDisplay.textContent = `${mins}:${secs}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+        }
+
+        function renderLevelSelectionCards() {
+            levelSelectionGrid.innerHTML = '';
+            gameLevels.forEach((level, idx) => {
+                const bestPathInfo = calculateShortestPath(level);
+                const card = document.createElement('div');
+                card.className = "bg-slate-800/90 hover:bg-slate-800 border-2 border-slate-700 hover:border-amber-400 p-3 rounded-2xl cursor-pointer transition text-left space-y-1 shadow-md";
+                card.onclick = () => {
+                    sound.playClick();
+                    loadLevel(idx);
+                };
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-amber-300">${level.name}</span>
+                        <span class="text-[10px] bg-sky-500/30 text-sky-200 px-2 py-0.5 rounded border border-sky-400/30">${level.nodes.length} จุด</span>
+                    </div>
+                    <p class="text-[11px] text-slate-300">ระยะทางสั้นสุดประมาณ ${bestPathInfo.distance.toFixed(1)} กม.</p>
+                `;
+                levelSelectionGrid.appendChild(card);
+            });
+        }
+
+        function loadLevel(index) {
+            currentLevelIndex = index;
+            const level = gameLevels[currentLevelIndex];
+            selectedPath = [level.startNode];
+
+            levelDisplay.textContent = `แผนที่ ${level.id}`;
+            mapTagDisplay.textContent = level.tag;
+            feedbackBox.classList.add('hidden');
+
+            showScreen(gameScreen);
+            startTimer();
+            renderMapGraphics();
+            updateUI();
+        }
+
+        /* Render SVG edges and interactive Node buttons */
+        function renderMapGraphics() {
+            const level = gameLevels[currentLevelIndex];
+            mapSvg.innerHTML = '';
+            nodesContainer.innerHTML = '';
+
+            const containerRect = document.getElementById('mapCanvasContainer').getBoundingClientRect();
+            const width = containerRect.width;
+            const height = containerRect.height;
+
+            // Map Node ID to Pixel Coordinates
+            const coords = {};
+            level.nodes.forEach(node => {
+                coords[node.id] = {
+                    x: (node.x / 100) * width,
+                    y: (node.y / 100) * height
+                };
+            });
+
+            // 1. Draw SVG Edges
+            level.edges.forEach(edge => {
+                const start = coords[edge.from];
+                const end = coords[edge.to];
+                if (!start || !end) return;
+
+                const isSelectedEdge = isEdgeInSelectedPath(edge.from, edge.to);
+
+                // Edge Line Group
+                const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+                // Line Element
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", start.x);
+                line.setAttribute("y1", start.y);
+                line.setAttribute("x2", end.x);
+                line.setAttribute("y2", end.y);
+                
+                if (isSelectedEdge) {
+                    line.setAttribute("stroke", "#10b981"); // Vibrant Emerald Green
+                    line.setAttribute("stroke-width", "6");
+                    line.setAttribute("class", "edge-line-active");
+                } else {
+                    line.setAttribute("stroke", "#475569"); // Slate 600
+                    line.setAttribute("stroke-width", "3");
+                    line.setAttribute("stroke-dasharray", "4,4");
+                }
+
+                group.appendChild(line);
+
+                // Distance Label Badge on Edge Center
+                const midX = (start.x + end.x) / 2;
+                const midY = (start.y + end.y) / 2;
+
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("x", midX - 16);
+                rect.setAttribute("y", midY - 10);
+                rect.setAttribute("width", "32");
+                rect.setAttribute("height", "20");
+                rect.setAttribute("rx", "6");
+                rect.setAttribute("fill", isSelectedEdge ? "#064e3b" : "#0f172a");
+                rect.setAttribute("stroke", isSelectedEdge ? "#34d399" : "#64748b");
+                rect.setAttribute("stroke-width", "1.5");
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", midX);
+                text.setAttribute("y", midY + 4);
+                text.setAttribute("fill", isSelectedEdge ? "#6ee7b7" : "#cbd5e1");
+                text.setAttribute("font-size", "10");
+                text.setAttribute("font-weight", "bold");
+                text.setAttribute("text-anchor", "middle");
+                text.textContent = `${edge.dist}`;
+
+                group.appendChild(rect);
+                group.appendChild(text);
+
+                mapSvg.appendChild(group);
+            });
+
+            // 2. Render Interactive DOM Nodes
+            const lastVisited = selectedPath[selectedPath.length - 1];
+
+            level.nodes.forEach(node => {
+                const pos = coords[node.id];
+                const isSelected = selectedPath.includes(node.id);
+                const isLastNode = lastVisited === node.id;
+                const isConnected = isNodeConnectedTo(lastVisited, node.id);
+
+                const btn = document.createElement('button');
+                btn.style.left = `${pos.x}px`;
+                btn.style.top = `${pos.y}px`;
+                btn.style.transform = 'translate(-50%, -50%)';
+                btn.className = `absolute z-30 flex flex-col items-center justify-center p-1.5 rounded-2xl border-2 shadow-xl transition transform active:scale-95 ${
+                    isSelected 
+                        ? 'bg-amber-400 border-amber-200 text-slate-950 scale-105' 
+                        : isConnected 
+                            ? 'bg-slate-800 border-sky-400 text-white hover:scale-110 node-pulse ring-4 ring-sky-400/30' 
+                            : 'bg-slate-900 border-slate-700 text-slate-400 opacity-80 cursor-not-allowed'
+                }`;
+
+                btn.onclick = () => handleNodeClick(node.id);
+
+                btn.innerHTML = `
+                    <div class="text-xl sm:text-2xl">${node.icon}</div>
+                    <div class="text-[10px] sm:text-xs font-bold leading-tight px-1">${node.id}</div>
+                `;
+
+                nodesContainer.appendChild(btn);
+            });
+        }
+
+        function isEdgeInSelectedPath(from, to) {
+            for (let i = 0; i < selectedPath.length - 1; i++) {
+                const u = selectedPath[i];
+                const v = selectedPath[i + 1];
+                if ((u === from && v === to) || (u === to && v === from)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function isNodeConnectedTo(current, target) {
+            const level = gameLevels[currentLevelIndex];
+            return level.edges.some(e => 
+                (e.from === current && e.to === target) || (e.from === target && e.to === current)
+            );
+        }
+
+        function handleNodeClick(nodeId) {
+            const level = gameLevels[currentLevelIndex];
+            const lastVisited = selectedPath[selectedPath.length - 1];
+
+            // 1. If user clicks already selected node (Prevent duplicate loop or allow back track)
+            if (selectedPath.includes(nodeId)) {
+                if (nodeId === lastVisited && selectedPath.length > 1) {
+                    // Undo last step
+                    sound.playClick();
+                    selectedPath.pop();
+                    renderMapGraphics();
+                    updateUI();
+                } else {
+                    sound.playWrong();
+                    showFeedback("ห้ามย้อนกลับไปจุดเดิมที่เคยเดินผ่านแล้วนะครับ!", false);
+                }
+                return;
+            }
+
+            // 2. Check if connected
+            if (!isNodeConnectedTo(lastVisited, nodeId)) {
+                sound.playWrong();
+                showFeedback(`จุด ${nodeId} ไม่มีเส้นทางเชื่อมต่อโดยตรงจากจุด ${lastVisited} ครับ!`, false);
+                return;
+            }
+
+            // 3. Valid move
+            sound.playSelectNode();
+            selectedPath.push(nodeId);
+            feedbackBox.classList.add('hidden');
+
+            renderMapGraphics();
+            updateUI();
+
+            // Auto check if reached target
+            if (nodeId === level.targetNode) {
+                setTimeout(() => {
+                    checkAnswer();
+                }, 400);
+            }
+        }
+
+        function calculatePathDistance(path, level) {
+            let total = 0;
+            for (let i = 0; i < path.length - 1; i++) {
+                const u = path[i];
+                const v = path[i + 1];
+                const edge = level.edges.find(e => (e.from === u && e.to === v) || (e.from === v && e.to === u));
+                if (edge) total += edge.dist;
+            }
+            return total;
+        }
+
+        /* Dijkstra / BFS All Paths to find exact Shortest Path */
+        function calculateShortestPath(level) {
+            const allPaths = [];
+
+            function dfs(currentNode, visited, currentDist) {
+                if (currentNode === level.targetNode) {
+                    allPaths.push({ path: [...visited], distance: currentDist });
+                    return;
+                }
+
+                level.edges.forEach(edge => {
+                    let nextNode = null;
+                    if (edge.from === currentNode) nextNode = edge.to;
+                    else if (edge.to === currentNode) nextNode = edge.from;
+
+                    if (nextNode && !visited.includes(nextNode)) {
+                        visited.push(nextNode);
+                        dfs(nextNode, visited, currentDist + edge.dist);
+                        visited.pop();
+                    }
+                });
+            }
+
+            dfs(level.startNode, [level.startNode], 0);
+
+            // Sort by shortest distance
+            allPaths.sort((a, b) => a.distance - b.distance);
+            return allPaths[0] || { path: [], distance: 0 };
+        }
+
+        function updateUI() {
+            const level = gameLevels[currentLevelIndex];
+            const currentDist = calculatePathDistance(selectedPath, level);
+            currentDistanceDisplay.textContent = `${currentDist.toFixed(1)} กม.`;
+
+            // Render Path Breadcrumbs
+            pathBreadcrumbs.innerHTML = `<span class="font-bold text-amber-300">เส้นทางที่คุณเลือก:</span>`;
+            selectedPath.forEach((nodeId, idx) => {
+                const nodeObj = level.nodes.find(n => n.id === nodeId);
+                const span = document.createElement('span');
+                span.className = "bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded border border-amber-400/40 font-bold flex items-center gap-1";
+                span.innerHTML = `<span>${nodeObj ? nodeObj.icon : ''}</span> <span>${nodeId}</span>`;
+                pathBreadcrumbs.appendChild(span);
+
+                if (idx < selectedPath.length - 1) {
+                    const arrow = document.createElement('span');
+                    arrow.className = "text-slate-400 text-[10px]";
+                    arrow.innerHTML = `<i class="fa-solid fa-chevron-right"></i>`;
+                    pathBreadcrumbs.appendChild(arrow);
+                }
+            });
+
+            scoreDisplay.textContent = totalScore;
+        }
+
+        function showFeedback(msg, isSuccess = true) {
+            feedbackBox.classList.remove('hidden', 'bg-rose-500/20', 'border-rose-500', 'text-rose-200', 'bg-emerald-500/20', 'border-emerald-500', 'text-emerald-200');
+            if (isSuccess) {
+                feedbackBox.className = "p-3.5 rounded-2xl text-xs sm:text-sm font-medium border bg-emerald-500/20 border-emerald-500 text-emerald-200 flex items-start gap-2.5 shadow-lg";
+                feedbackBox.innerHTML = `<i class="fa-solid fa-circle-check text-lg text-emerald-400 mt-0.5"></i><div>${msg}</div>`;
+            } else {
+                feedbackBox.className = "p-3.5 rounded-2xl text-xs sm:text-sm font-medium border bg-rose-500/20 border-rose-500 text-rose-200 flex items-start gap-2.5 shadow-lg animate-bounce";
+                feedbackBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-lg text-rose-400 mt-0.5"></i><div>${msg}</div>`;
+            }
+        }
+
+        function checkAnswer() {
+            sound.playClick();
+            const level = gameLevels[currentLevelIndex];
+            const lastVisited = selectedPath[selectedPath.length - 1];
+
+            // 1. Check if reached destination
+            if (lastVisited !== level.targetNode) {
+                sound.playWrong();
+                showFeedback("คุณยังเดินทางไม่ถึง 🏫 โรงเรียน กรุณาเลือกจุดเชื่อมต่อถัดไปจนถึงโรงเรียนนะครับ!", false);
+                return;
+            }
+
+            // 2. Calculate distances
+            const userDist = calculatePathDistance(selectedPath, level);
+            const bestResult = calculateShortestPath(level);
+            const bestDist = bestResult.distance;
+
+            const isShortest = Math.abs(userDist - bestDist) < 0.01;
+
+            // Score Calculation: 100 for exact shortest, penalty for extra distance
+            let earnedScore = 100;
+            if (!isShortest) {
+                const diff = userDist - bestDist;
+                earnedScore = Math.max(40, Math.round(100 - (diff * 15)));
+            }
+
+            totalScore += earnedScore;
+            scoreDisplay.textContent = totalScore;
+
+            // Populate Modal Text
+            document.getElementById('modalUserDist').textContent = `${userDist.toFixed(1)} กิโลเมตร`;
+            document.getElementById('modalBestDist').textContent = `${bestDist.toFixed(1)} กิโลเมตร`;
+            document.getElementById('modalScoreEarned').textContent = `${earnedScore} / 100 คะแนน`;
+
+            const bestPathStr = bestResult.path.map(id => {
+                const nodeObj = level.nodes.find(n => n.id === id);
+                return `${nodeObj ? nodeObj.icon : ''} ${id}`;
+            }).join(' ➔ ');
+
+            document.getElementById('modalBestPathExplanation').textContent = `เส้นทางสั้นที่สุดคือ: ${bestPathStr} (ระยะทางรวม ${bestDist.toFixed(1)} กม.)`;
+
+            const modalHeaderBadge = document.getElementById('modalHeaderBadge');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalSubtitle = document.getElementById('modalSubtitle');
+            const modalIconBox = document.getElementById('modalIconBox');
+
+            if (isShortest) {
+                sound.playVictory();
+                modalHeaderBadge.className = "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider";
+                modalHeaderBadge.textContent = "เส้นทางสั้นที่สุดถูกต้อง!";
+                modalTitle.textContent = "🎉 เก่งมาก!";
+                modalSubtitle.textContent = "คุณเลือกเส้นทางที่มีระยะทางรวมสั้นที่สุดได้อย่างยอดเยี่ยม!";
+                modalIconBox.textContent = "🏆";
+
+                if (typeof confetti === 'function') {
+                    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+                }
+            } else {
+                sound.playWrong();
+                modalHeaderBadge.className = "bg-amber-500/20 text-amber-300 border border-amber-500/50 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider";
+                modalHeaderBadge.textContent = "ลองอีกครั้งนะ 😊";
+                modalTitle.textContent = "ลองทดลองเส้นทางอื่นดูนะ!";
+                modalSubtitle.textContent = `เส้นทางนี้ยาวกว่าเส้นทางสั้นที่สุดอยู่ ${(userDist - bestDist).toFixed(1)} กม.`;
+                modalIconBox.textContent = "🚲";
+            }
+
+            resultModal.classList.remove('hidden');
+        }
+
+        /* Event Listeners */
+        document.getElementById('startGamePlayBtn').onclick = () => {
+            sound.playClick();
+            loadLevel(0);
+        };
+
+        document.getElementById('undoStepBtn').onclick = () => {
+            if (selectedPath.length > 1) {
+                sound.playClick();
+                selectedPath.pop();
+                renderMapGraphics();
+                updateUI();
+            }
+        };
+
+        document.getElementById('resetMapBtn').onclick = () => {
+            sound.playClick();
+            selectedPath = [gameLevels[currentLevelIndex].startNode];
+            renderMapGraphics();
+            updateUI();
+        };
+
+        document.getElementById('checkAnswerBtn').onclick = checkAnswer;
+
+        document.getElementById('modalRetryBtn').onclick = () => {
+            sound.playClick();
+            resultModal.classList.add('hidden');
+            selectedPath = [gameLevels[currentLevelIndex].startNode];
+            renderMapGraphics();
+            updateUI();
+        };
+
+        document.getElementById('modalNextLevelBtn').onclick = () => {
+            sound.playClick();
+            resultModal.classList.add('hidden');
+            if (currentLevelIndex + 1 < gameLevels.length) {
+                loadLevel(currentLevelIndex + 1);
+            } else {
+                stopTimer();
+                showVictorySummary();
+            }
+        };
+
+        function showVictorySummary() {
+            sound.playVictory();
+            showScreen(victoryScreen);
+
+            document.getElementById('finalScore').textContent = totalScore;
+            const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+            const secs = String(timerSeconds % 60).padStart(2, '0');
+            document.getElementById('finalTime').textContent = `${mins}:${secs}`;
+
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 150, spread: 90, origin: { y: 0.5 } });
+            }
+        }
+
+        document.getElementById('restartGameBtn').onclick = () => {
+            sound.playClick();
+            totalScore = 0;
+            currentLevelIndex = 0;
+            showScreen(startScreen);
+        };
+
+        document.getElementById('headerHomeBtn').onclick = () => {
+            sound.playClick();
+            stopTimer();
+            showScreen(startScreen);
+        };
+
+        // Sound Toggle Button
+        document.getElementById('soundToggleBtn').onclick = () => {
+            sound.muted = !sound.muted;
+            const icon = document.getElementById('soundIcon');
+            if (sound.muted) {
+                icon.className = "fa-solid fa-volume-xmark text-slate-400";
+            } else {
+                icon.className = "fa-solid fa-volume-high text-amber-300";
+                sound.playClick();
+            }
+        };
+    </script>
+</body>
+</html>
